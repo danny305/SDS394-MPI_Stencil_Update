@@ -36,17 +36,32 @@ void smooth (float* x, float* y, uint64_t dim_size=98306, float a=0.05, float b=
 	float new_val;
 	for (uint64_t i = 0; i < n*n; i += n){
 		for (uint64_t j = i; j < i + n; j++){
+			if (j < n || j >= n*(n-1) || j == i || j == i + n - 1){ 
+				y[j] = 0;
+				//cout << "Entered if statement! ";
+				continue;
+			}
+			
+			y[j] = b * (x[j-n+0] + x[j+n+0] + x[j-1] + x[j+1]) + c * (x[j]);
+			cout << "index: " << j << " value " << y[j] << endl;
+			
+		}
+//		cout << endl;	
+	}
+/*	
+	for (uint64_t i = 0; i < n*n; i += n){
+		for (uint64_t j = i; j < i + n; j++){
 			if (j < n || j >= n*(n-1) || j == i || j == i + n -1){ 
 				continue;
 			}
 			
-			y[j] = 	  a * (x[j-n-1] + x[j-n+1] + x[j+n-1] + x[j+n+1]) + 
-				  b * (x[j-n+0] + x[j+n+0] + x[j-1] + x[j+1]) +
-				  c * (x[j]);
+			y[j] = b * (x[j-n+0] + x[j+n+0] + x[j-1] + x[j+1]) +
+			       c * (x[j]);
 //			cout << y[j] << " ";
 		}
 //		cout << endl;	
 	}
+*/
 //	cout << endl;
 
 }
@@ -96,7 +111,7 @@ void main (int argc, char* argv[]) {
 	srand(time(NULL));
 	float * x1;
 	float * x; float * y;
-	uint64_t n = 100;	
+	uint64_t n = 10;	
 //	uint64_t n = 98306;	
 	double array_size = (double)sizeof(float)*n*n/1073741824;
 
@@ -106,26 +121,37 @@ void main (int argc, char* argv[]) {
 
 	x = (float *) malloc(n * n * sizeof(size_t));
 	y = (float *) malloc(n * n * sizeof(size_t));
+
 	
 	initialize_arr(x,n);
 	smooth(x, y, n);
 	count(x, n, &elm_bel_thres_x_ct, t);
 	count(y, n, &elm_bel_thres_y_ct, t);
 
+
+	if (rank == 0){
 	cout << "Print x for rank: " << rank << endl;
-	for (uint64_t i = 0; i < n; i++){
+	for (uint64_t i = 0; i <= n*n; i++){
 		cout << x[i] << " " ;
+		if ((i+1) % n == 0)
+			cout << "\n\n";
+	}
+	cout << "\n\n" << endl;
 	}
 
-
+	if (rank == 0){
 	cout << "Print y for rank: " << rank << endl;
-	for (uint64_t i = 0; i < n; i++){
+	for (uint64_t i = 0; i <= n*n; i++){
 		cout << y[i] << " " ;
+		if ((i+1) % n == 0)
+			cout << "\n\n";
 	}
-
+	}
 
 
 	ierr = MPI_Finalize();	
+	
+	cout << "Total tasks: " << nranks << endl;
 }
 
 
