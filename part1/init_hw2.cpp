@@ -91,6 +91,8 @@ void main (int argc, char* argv[]) {
 	
 	//Begin doing MPI
 
+	
+
 	srand(time(NULL));
 	float * x1;
 	float * x; float * y;
@@ -102,9 +104,28 @@ void main (int argc, char* argv[]) {
 	uint64_t elm_bel_thres_x_ct, elm_bel_thres_y_ct;
 	float elm_bel_thres_x_fr, elm_bel_thres_y_fr;
 
+	x = (float *) malloc(n * n * sizeof(size_t));
+	y = (float *) malloc(n * n * sizeof(size_t));
+	
+	initialize_arr(x,n);
+	smooth(x, y, n);
+	count(x, n, &elm_bel_thres_x_ct, t);
+	count(y, n, &elm_bel_thres_y_ct, t);
+
+	cout << "Print x for rank: " << rank << endl;
+	for (uint64_t i = 0; i < n; i++){
+		cout << x[i] << " " ;
+	}
+
+
+	cout << "Print y for rank: " << rank << endl;
+	for (uint64_t i = 0; i < n; i++){
+		cout << y[i] << " " ;
+	}
 
 
 
+	ierr = MPI_Finalize();	
 }
 
 
