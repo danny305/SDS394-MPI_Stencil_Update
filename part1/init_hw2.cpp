@@ -3,6 +3,12 @@
 #include "time.h"
 #include <ctime>
 #include <mpi.h>
+#include <stdexcept>
+#include <math.h>
+#include <typeinfo>
+
+
+#define NP 3
 
 using namespace std;
 
@@ -38,12 +44,12 @@ void smooth (float* x, float* y, uint64_t dim_size=98306, float a=0.05, float b=
 		for (uint64_t j = i; j < i + n; j++){
 			if (j < n || j >= n*(n-1) || j == i || j == i + n - 1){ 
 				y[j] = 0;
-				//cout << "Entered if statement! ";
+				//cout << "Entered if statement! " << "";
 				continue;
 			}
 			
 			y[j] = b * (x[j-n+0] + x[j+n+0] + x[j-1] + x[j+1]) + c * (x[j]);
-			cout << "index: " << j << " value " << y[j] << endl;
+			//cout << "index: " << j << " value " << y[j] << endl;
 			
 		}
 //		cout << endl;	
@@ -94,20 +100,51 @@ void count (float* arr, uint64_t dim_size = 98306, uint64_t * num_below=0, float
 void main (int argc, char* argv[]) {
 
 	//Initialize MPI
-	MPI_Comm comm = MPI_COMM_WORLD;
+	MPI_Comm comm_old = MPI_COMM_WORLD;
+	MPI_Comm comm_cart;
 	MPI_Status status;
 	MPI_Request request;
 
 
 	int nranks, rank = -1, ierr, recv_buff= -1;
         ierr = MPI_Init(&argc, &argv);
-        ierr = MPI_Comm_size(comm, &nranks);
-        ierr = MPI_Comm_rank(comm, &rank);
-	
-	//Begin doing MPI
-
+        ierr = MPI_Comm_size(comm_old, &nranks);
+        ierr = MPI_Comm_rank(comm_old, &rank);
 	
 
+	//ivdim is an array that says how many  nodes reside along each dimension ex (3,3) or (2,2)
+	//ivper is for periodicity, I think a 1 means not periodic. Need to confirm
+	int ivdim[2] = {NP, NP}, ivper[2] = {1,1};
+
+	//Make sure number of task can make a perfect square
+	if (rank == 0){
+		cout << "Number of tasks: " << nranks << endl;
+		cout << "Sqrt = " << sqrt(nranks) << endl;
+		cout << "Type of sqrt val: " << typeid(sqrt(nranks)).name() << endl;
+		// This alwyas returns type Decimal even if it is an integer, does not help.
+	}
+	
+	//Creating Cartesion Topology
+	int dims = sqrt(nranks); // I dont think I do anything with this one. 
+
+	ierr = MPI_Cart_create(comm_old, 2, ivdim, ivper, 0,&comm_cart);
+	
+	int coordinates[2]; // This is where you store the coordinates of each rank in the new topology
+	ierr = MPI_Cart_coords(comm_cart, rank, 2, coordinates);
+	cout << "rank: " << rank << " dimension" << coordinates[0] << "," << coordinates[1] << endl;
+	//cout << "IERR: " << ierr << endl;
+	
+
+
+
+
+/*	int* dim[2]; 
+	ierr = MPI_Dims_create( nranks, 2, *dim);
+	
+	for (int i = 0; i < 2; i++){
+		cout << "dimensions: " << dim[i] << endl;	
+	}
+*/
 	srand(time(NULL));
 	float * x1;
 	float * x; float * y;
