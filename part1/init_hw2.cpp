@@ -112,17 +112,27 @@ void main (int argc, char* argv[]) {
         ierr = MPI_Comm_rank(comm_old, &rank);
 	
 
+
+	//Make sure number of task can make a perfect square
+	
+	float ps_sq_root = sqrt(nranks);
+	if (rank == 0){
+		if (ps_sq_root == floor(ps_sq_root)){
+			#undef NP
+			#define NP ps_sq_root
+		}
+		//cout << "Type of sqrt val: " << typeid(sqrt(nranks)).name() << endl;
+		// This alwyas returns type Decimal even if it is an integer, does not help.
+		else {
+			cout << "Number of tasks: " << nranks << endl;
+			cout << "Sqrt = " << ps_sq_root << endl;
+			throw invalid_argument( "Number of tasks does not make a perfect square.");
+		}
+	}
+	
 	//ivdim is an array that says how many  nodes reside along each dimension ex (3,3) or (2,2)
 	//ivper is for periodicity, I think a 1 means not periodic. Need to confirm
 	int ivdim[2] = {NP, NP}, ivper[2] = {1,1};
-
-	//Make sure number of task can make a perfect square
-	if (rank == 0){
-		cout << "Number of tasks: " << nranks << endl;
-		cout << "Sqrt = " << sqrt(nranks) << endl;
-		cout << "Type of sqrt val: " << typeid(sqrt(nranks)).name() << endl;
-		// This alwyas returns type Decimal even if it is an integer, does not help.
-	}
 	
 	//Creating Cartesion Topology
 	int dims = sqrt(nranks); // I dont think I do anything with this one. 
@@ -165,7 +175,7 @@ void main (int argc, char* argv[]) {
 	count(x, n, &elm_bel_thres_x_ct, t);
 	count(y, n, &elm_bel_thres_y_ct, t);
 
-
+/*
 	if (rank == 0){
 	cout << "Print x for rank: " << rank << endl;
 	for (uint64_t i = 0; i <= n*n; i++){
@@ -184,7 +194,7 @@ void main (int argc, char* argv[]) {
 			cout << "\n\n";
 	}
 	}
-
+*/
 
 	ierr = MPI_Finalize();	
 	
