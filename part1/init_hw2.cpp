@@ -130,23 +130,42 @@ void main (int argc, char* argv[]) {
 		}
 	}
 	
-	//ivdim is an array that says how many  nodes reside along each dimension ex (3,3) or (2,2)
-	//ivper is for periodicity, I think a 1 means not periodic. Need to confirm
-	int ivdim[2] = {NP, NP}, ivper[2] = {1,1};
-	
 	//Creating Cartesion Topology
-	int dims = sqrt(nranks); // I dont think I do anything with this one. 
-
-	ierr = MPI_Cart_create(comm_old, 2, ivdim, ivper, 0,&comm_cart);
+	//ivdim is an array that says how many  nodes reside along each dimension ex (3,3) or (2,2)
+	//ivper is for periodicity, The value 0 means no periodicity. 
+	int ivdim[2] = {NP, NP}, ivper[2] = {0,0};
+	ierr = MPI_Cart_create(comm_old, 2, ivdim, ivper, 0,&comm_cart);	
 	
+	//Check the location of each rank within the new topology
 	int coordinates[2]; // This is where you store the coordinates of each rank in the new topology
 	ierr = MPI_Cart_coords(comm_cart, rank, 2, coordinates);
 	cout << "rank: " << rank << " dimension" << coordinates[0] << "," << coordinates[1] << endl;
 	//cout << "IERR: " << ierr << endl;
 	
 
+	//CARTESIAN SHIFT
+	//create all the source and receive ranks for the 4 cart_shifts (up, down, left, right)
+	int src_rank_r, dest_rank_r;
+	int src_rank_l, dest_rank_l;
+	int src_rank_u, dest_rank_u;
+	int src_rank_d, dest_rank_d;
+	
+	//obtain all the ranks for each cart shift for each node.
+	//shift right 
+	ierr = MPI_Cart_shift(comm_cart, 1, 1, &src_rank_r, &dest_rank_r);
+	cout << "Shift right - My rank: " << rank << " Receiving from: " << src_rank_r << " Sending to: " << dest_rank_r << endl;
+	
+	//shift left 
+	ierr = MPI_Cart_shift(comm_cart, 1, -1, &src_rank_l, &dest_rank_l);
+	cout << "Shift left - My rank: " << rank << " Receiving from: " << src_rank_l << " Sending to: " << dest_rank_l << endl;
 
+	//shift up 
+	ierr = MPI_Cart_shift(comm_cart, 0, -1, &src_rank_u, &dest_rank_u);
+	cout << "Shift up - My rank: " << rank << " Receiving from: " << src_rank_u << " Sending to: " << dest_rank_u << endl;
 
+	//shift down 
+	ierr = MPI_Cart_shift(comm_cart, 0, 1, &src_rank_d, &dest_rank_d);
+	cout << "Shift down - My rank: " << rank << " Receiving from: " << src_rank_d << " Sending to: " << dest_rank_d << endl;
 
 /*	int* dim[2]; 
 	ierr = MPI_Dims_create( nranks, 2, *dim);
