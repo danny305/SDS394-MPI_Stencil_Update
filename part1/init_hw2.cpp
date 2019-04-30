@@ -143,29 +143,9 @@ void main (int argc, char* argv[]) {
 	//cout << "IERR: " << ierr << endl;
 	
 
-	//CARTESIAN SHIFT
-	//create all the source and receive ranks for the 4 cart_shifts (up, down, left, right)
-	int src_rank_r, dest_rank_r;
-	int src_rank_l, dest_rank_l;
-	int src_rank_u, dest_rank_u;
-	int src_rank_d, dest_rank_d;
-	
-	//obtain all the ranks for each cart shift for each node.
-	//shift right 
-	ierr = MPI_Cart_shift(comm_cart, 1, 1, &src_rank_r, &dest_rank_r);
-	cout << "Shift right - My rank: " << rank << " Receiving from: " << src_rank_r << " Sending to: " << dest_rank_r << endl;
-	
-	//shift left 
-	ierr = MPI_Cart_shift(comm_cart, 1, -1, &src_rank_l, &dest_rank_l);
-	cout << "Shift left - My rank: " << rank << " Receiving from: " << src_rank_l << " Sending to: " << dest_rank_l << endl;
 
-	//shift up 
-	ierr = MPI_Cart_shift(comm_cart, 0, -1, &src_rank_u, &dest_rank_u);
-	cout << "Shift up - My rank: " << rank << " Receiving from: " << src_rank_u << " Sending to: " << dest_rank_u << endl;
 
-	//shift down 
-	ierr = MPI_Cart_shift(comm_cart, 0, 1, &src_rank_d, &dest_rank_d);
-	cout << "Shift down - My rank: " << rank << " Receiving from: " << src_rank_d << " Sending to: " << dest_rank_d << endl;
+
 
 /*	int* dim[2]; 
 	ierr = MPI_Dims_create( nranks, 2, *dim);
@@ -190,6 +170,93 @@ void main (int argc, char* argv[]) {
 
 	
 	initialize_arr(x,n);
+
+
+	//CARTESIAN SHIFT
+	//create all the source and receive ranks for the 4 cart_shifts (up, down, left, right)
+	int src_rank_r, dest_rank_r;
+	int src_rank_l, dest_rank_l;
+	int src_rank_u, dest_rank_u;
+	int src_rank_d, dest_rank_d;
+	
+	int a1 = 10, a2, b1 = 20, b2, cnt = 1;
+
+	MPI_Request req;
+	MPI_Status stat;
+	//obtain all the ranks for each cart shift for each node.
+	//shift right 
+	ierr = MPI_Cart_shift(comm_cart, 1, 1, &src_rank_r, &dest_rank_r);
+	cout << "Shift right - My rank: " << rank << " Receiving from: " << src_rank_r << " Sending to: " << dest_rank_r << endl;
+/*
+	//Sending up a column	
+	if (dest_rank_r != -1){
+		//cout << "dest_rank_r does not equal -1" << endl;	
+		ierr = MPI_Isend(&a1, cnt, MPI_INT, dest_rank_r, 1, comm_old, &req);
+		cout << "Sending a1 with a value of : " << a1 << endl;
+		//MPI_Wait;
+	}
+
+	if (src_rank_r != -1){
+		//cout << "src_rank_r does not equal -1" << endl;
+		ierr = MPI_Irecv(&a2, cnt, MPI_INT, src_rank_r, 1, comm_old, &req);
+		MPI_Wait(&req, &stat);
+		cout << "RECEIVED! My rank: " << rank << " Receiving from: " << src_rank_r << " Value received: " << a2 << endl;
+	}
+
+	//Sending right requires a vector MPI data structure 	
+	if (dest_rank_r != -1){
+		//cout << "dest_rank_r does not equal -1" << endl;	
+		ierr = MPI_Isend(&a1, cnt, MPI_INT, dest_rank_r, 1, comm_old, &req);
+		cout << "Sending a1 with a value of : " << a1 << endl;
+		//MPI_Wait;
+	}
+
+	if (src_rank_r != -1){
+		//cout << "src_rank_r does not equal -1" << endl;
+		ierr = MPI_Irecv(&a2, cnt, MPI_INT, src_rank_r, 1, comm_old, &req);
+		MPI_Wait(&req, &stat);
+		cout << "RECEIVED! My rank: " << rank << " Receiving from: " << src_rank_r << " Value received: " << a2 << endl;
+	}
+	
+*/
+
+	
+	//shift left 
+	ierr = MPI_Cart_shift(comm_cart, 1, -1, &src_rank_l, &dest_rank_l);
+	cout << "Shift left - My rank: " << rank << " Receiving from: " << src_rank_l << " Sending to: " << dest_rank_l << endl;
+
+	//shift up 
+	ierr = MPI_Cart_shift(comm_cart, 0, -1, &src_rank_u, &dest_rank_u);
+	cout << "Shift up - My rank: " << rank << " Receiving from: " << src_rank_u << " Sending to: " << dest_rank_u << endl;
+
+	//shift down 
+	ierr = MPI_Cart_shift(comm_cart, 0, 1, &src_rank_d, &dest_rank_d);
+	cout << "Shift down - My rank: " << rank << " Receiving from: " << src_rank_d << " Sending to: " << dest_rank_d << endl;
+
+
+	//Need to implement the sending and receiving of different columns between MPI task using send_recv commands. 
+		
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+
+
+
+
+
+
+
+
+
+
+
 	smooth(x, y, n);
 	count(x, n, &elm_bel_thres_x_ct, t);
 	count(y, n, &elm_bel_thres_y_ct, t);
