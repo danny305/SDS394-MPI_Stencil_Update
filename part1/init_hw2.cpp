@@ -43,7 +43,7 @@ void smooth (float* x, float* y, uint64_t x_dim_size=98306, float a=0.05, float 
 	for (uint64_t i = 0; i < n*n; i += n){
 		for (uint64_t j = i; j < i + n; j++){
 			if (j < n || j >= n*(n-1) || j == i || j == i + n - 1){ 
-				y[j] = 0;
+				y[j] = x[j];
 				//cout << "Entered if statement! " << "";
 				continue;
 			}
@@ -130,20 +130,6 @@ void main (int argc, char* argv[]) {
 		}
 	}
 	
-	//Creating Cartesion Topology
-	//ivdim is an array that says how many  nodes reside along each dimension ex (3,3) or (2,2)
-	//ivper is for periodicity, The value 0 means no periodicity. 
-	int ivdim[2] = {NP, NP}, ivper[2] = {0,0};
-	ierr = MPI_Cart_create(comm_old, 2, ivdim, ivper, 0,&comm_cart);	
-	
-	//Check the location of each rank within the new topology
-	int coordinates[2]; // This is where you store the coordinates of each rank in the new topology
-	ierr = MPI_Cart_coords(comm_cart, rank, 2, coordinates);
-	//cout << "rank: " << rank << " dimension" << coordinates[0] << "," << coordinates[1] << endl;
-	//cout << "IERR: " << ierr << endl;
-	
-
-
 
 
 
@@ -173,8 +159,29 @@ void main (int argc, char* argv[]) {
 	x = (float *) malloc(x_n * x_n * sizeof(size_t));
 	y = (float *) malloc(n * n * sizeof(size_t));
 
+
+
 	
 	initialize_arr(x,x_n);
+
+
+
+
+// Sendiing rows and columns to all Neighbors.
+/* =============================================================================================================================== */
+
+	//Creating Cartesion Topology
+	//ivdim is an array that says how many  nodes reside along each dimension ex (3,3) or (2,2)
+	//ivper is for periodicity, The value 0 means no periodicity. 
+	int ivdim[2] = {NP, NP}, ivper[2] = {0,0};
+	ierr = MPI_Cart_create(comm_old, 2, ivdim, ivper, 0,&comm_cart);	
+	
+	//Check the location of each rank within the new topology
+	int coordinates[2]; // This is where you store the coordinates of each rank in the new topology
+	ierr = MPI_Cart_coords(comm_cart, rank, 2, coordinates);
+	//cout << "rank: " << rank << " dimension" << coordinates[0] << "," << coordinates[1] << endl;
+	//cout << "IERR: " << ierr << endl;
+
 
 
 	//Create Derived type in order to pass border columns
@@ -199,15 +206,30 @@ void main (int argc, char* argv[]) {
 
 	//obtain all the ranks for each cart shift for each node.
 
-
-
-	//shift right 
+	//shift right coordinates
 	ierr = MPI_Cart_shift(comm_cart, 1, 1, &src_rank_r, &dest_rank_r);
 	//cout << "Shift right - My rank: " << rank << " Receiving from: " << src_rank_r << " Sending to: " << dest_rank_r << endl;
 
 
+	//shift left coordinates
+	ierr = MPI_Cart_shift(comm_cart, 1, -1, &src_rank_l, &dest_rank_l);
+	//cout << "Shift left - My rank: " << rank << " Receiving from: " << src_rank_l << " Sending to: " << dest_rank_l << endl;
 
- 	
+
+	//shift up coordinates
+	ierr = MPI_Cart_shift(comm_cart, 0, -1, &src_rank_u, &dest_rank_u);
+	//cout << "Shift up - My rank: " << rank << " Receiving from: " << src_rank_u << " Sending to: " << dest_rank_u << endl;
+
+	
+	//shift down 
+	ierr = MPI_Cart_shift(comm_cart, 0, 1, &src_rank_d, &dest_rank_d);
+	//cout << "Shift down - My rank: " << rank << " Receiving from: " << src_rank_d << " Sending to: " << dest_rank_d << endl;
+
+/* ##################################################################################################################################### */
+
+//Send all the data to the appropriate nodes.
+
+ 	//Sending column vector right
 	if (dest_rank_r != -1){
 		//cout << "dest_rank_r does not equal -1" << endl;	
 		ierr = MPI_Isend(&x[(2*x_n)-2], 1, n_column, dest_rank_r, 1, comm_old, &req);
@@ -229,7 +251,6 @@ void main (int argc, char* argv[]) {
 		
 //	MPI_Barrier(comm_old);
 
-
 /*	//Check that column vectors are successfully being shifted right.		
 	if (rank == 0){
 		cout << "Send rank: " << rank << endl;
@@ -249,12 +270,10 @@ void main (int argc, char* argv[]) {
 	}
 */	
 	
-	//shift left 
-	ierr = MPI_Cart_shift(comm_cart, 1, -1, &src_rank_l, &dest_rank_l);
-	//cout << "Shift left - My rank: " << rank << " Receiving from: " << src_rank_l << " Sending to: " << dest_rank_l << endl;
 
+/* #################################################################################################### */
 
-
+	//Sending a column vector left
 	if (dest_rank_l != -1){
 		//cout << "dest_rank_r does not equal -1" << endl;	
 		ierr = MPI_Isend(&x[x_n+1], 1, n_column, dest_rank_l, 1, comm_old, &req);
@@ -274,11 +293,8 @@ void main (int argc, char* argv[]) {
 		cout << "RECEIVED LEFT! My rank: " << rank << " Receiving from: " << src_rank_l << 
 		" first value of array: " << col_recv[0] << endl;
 	}
-	
-	
+		
 //	MPI_Barrier(comm_old);
-
-
 
 	//Check that column vectors are successfully being shifted LEFT		
 /*
@@ -303,9 +319,7 @@ void main (int argc, char* argv[]) {
 
 
 
-	//shift up 
-	ierr = MPI_Cart_shift(comm_cart, 0, -1, &src_rank_u, &dest_rank_u);
-	//cout << "Shift up - My rank: " << rank << " Receiving from: " << src_rank_u << " Sending to: " << dest_rank_u << endl;
+/* #################################################################################################### */
 	
 	//Sending up a row	
 	if (dest_rank_u != -1){
@@ -325,12 +339,7 @@ void main (int argc, char* argv[]) {
 		" Value received: " << x[(n+1)*(n+2)+1] << endl;
 	}
 
-
-	//shift down 
-	ierr = MPI_Cart_shift(comm_cart, 0, 1, &src_rank_d, &dest_rank_d);
-	//cout << "Shift down - My rank: " << rank << " Receiving from: " << src_rank_d << " Sending to: " << dest_rank_d << endl;
-
-
+/* #################################################################################################### */
 
 	//Sending down a row
 	if (dest_rank_d != -1){
@@ -350,32 +359,38 @@ void main (int argc, char* argv[]) {
 		" Value received: " << x[1] << endl;
 	}
 
+/* ================================================================================================================================= */
 
-
-/*
-	//Need to implement the sending and receiving of different columns between MPI task using send_recv commands. 
-	if (rank == 0){
-	cout << "Print x for rank: " << rank << endl;
-	for (uint64_t i = 0; i <= x_n*x_n; i++){
-		cout << x[i] << " " ;
-		if ((i+1) % x_n == 0)
-			cout << "\n\n";
-	}
-	cout << "\n\n" << endl;
-	}
-*/
-/*
-	if (rank == 0){
-	cout << "Print y for rank: " << rank << endl;
-	for (uint64_t i = 0; i <= n*n; i++){
-		cout << y[i] << " " ;
-		if ((i+1) % n == 0)
-			cout << "\n\n";
-	}
-	}
-*/
 
 	MPI_Barrier(comm_old);
+
+	smooth(x, y ,x_n);
+
+
+ 	//Prints out the x matrix of a node
+	if (rank == 0){
+		cout << "Print x for rank: " << rank << endl;
+		for (uint64_t i = 0; i <= x_n*x_n; i++){
+			cout << x[i] << " " ;
+			if ((i+1) % x_n == 0)
+				cout << "\n\n";
+		}
+		cout << "\n\n" << endl;
+	}
+
+
+ 	//Prints out the y matrix of a node.
+	if (rank == 0){
+		cout << "Print y for rank: " << rank << endl;
+		for (uint64_t i = 0; i <= x_n*x_n; i++){
+			cout << y[i] << " " ;
+			if ((i+1) % x_n == 0)
+				cout << "\n\n";
+		}
+	}
+
+
+
 	if (rank == 0){
 		cout << "Total tasks: " << nranks << endl;
 	}	
