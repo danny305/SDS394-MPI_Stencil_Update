@@ -177,6 +177,13 @@ void main (int argc, char* argv[]) {
 	initialize_arr(x,x_n);
 
 
+	//Create Derived type in order to pass border columns
+	float col_recv[n];	
+	MPI_Datatype n_column; // l_in_col, l_out_col, r_in_col, r_out_col;	
+	MPI_Type_vector(n, 1, x_n, MPI_FLOAT, &n_column);
+	MPI_Type_commit(&n_column);
+
+
 	//CARTESIAN SHIFT
 	//create all the source and receive ranks for the 4 cart_shifts (up, down, left, right)
 	int src_rank_r, dest_rank_r;
@@ -188,38 +195,63 @@ void main (int argc, char* argv[]) {
 	float arr_up[n], arr_down[n];
 	MPI_Request req;
 	MPI_Status stat;
+
+
 	//obtain all the ranks for each cart shift for each node.
+
 	//shift right 
 	ierr = MPI_Cart_shift(comm_cart, 1, 1, &src_rank_r, &dest_rank_r);
 //	cout << "Shift right - My rank: " << rank << " Receiving from: " << src_rank_r << " Sending to: " << dest_rank_r << endl;
 
 
-/*
+
 	//Sending right requires a vector MPI data structure 	
 	if (dest_rank_r != -1){
 		//cout << "dest_rank_r does not equal -1" << endl;	
-		ierr = MPI_Isend(&a1, cnt, MPI_INT, dest_rank_r, 1, comm_old, &req);
-		cout << "Sending a1 with a value of : " << a1 << endl;
+		ierr = MPI_Isend(&x[(2*x_n)-2], 1, n_column, dest_rank_r, 1, comm_old, &req);
+		//cout << "My rank: " << rank << " Sending right column  with first value : " << x[(2*x_n)-2] << endl;
 		//MPI_Wait;
 	}
 
 	if (src_rank_r != -1){
 		//cout << "src_rank_r does not equal -1" << endl;
-		ierr = MPI_Irecv(&a2, cnt, MPI_INT, src_rank_r, 1, comm_old, &req);
+		ierr = MPI_Irecv(&col_recv[0], n, MPI_FLOAT, src_rank_r, 1, comm_old, &req);
 		MPI_Wait(&req, &stat);
-		cout << "RECEIVED! My rank: " << rank << " Receiving from: " << src_rank_r << 
-		" Value received: " << a2 << endl;
+		for (int i = x_n, j = 0; i < x_n*(x_n -1); i += x_n, j++){
+                       x[i] = col_recv[j];
+                }
+		//cout << "RECEIVED! My rank: " << rank << " Receiving from: " << src_rank_r << 
+		//" first value of array: " << col_recv[0] << endl;
 	}
 	
-*/
+	
+	MPI_Barrier(comm_old);
 
+/*		
+	if (rank == 0){
+		cout << "Send rank: " << rank << endl;
+		for (int i = (2*x_n)-2; i < x_n*(x_n -1); i += x_n){
+			cout << x[i] << ", ";
+		}
+		cout << endl << endl;
+	}
+*/
+	
+	if (rank == 1){
+		cout << "Receive rank: " << rank << endl;
+		for (int i = 0; i < n; i++){
+			cout << col_recv[i] << ", ";
+		}
+		cout << endl << endl;
+	}
 	
 	//shift left 
-	ierr = MPI_Cart_shift(comm_cart, 1, -1, &src_rank_l, &dest_rank_l);
+//	ierr = MPI_Cart_shift(comm_cart, 1, -1, &src_rank_l, &dest_rank_l);
 	//cout << "Shift left - My rank: " << rank << " Receiving from: " << src_rank_l << " Sending to: " << dest_rank_l << endl;
 
 
 
+/*
 	//shift up 
 	ierr = MPI_Cart_shift(comm_cart, 0, -1, &src_rank_u, &dest_rank_u);
 	//cout << "Shift up - My rank: " << rank << " Receiving from: " << src_rank_u << " Sending to: " << dest_rank_u << endl;
@@ -266,21 +298,22 @@ void main (int argc, char* argv[]) {
 		cout << "RECEIVED DOWN! My rank: " << rank << " Receiving from: " << src_rank_d << 
 		" Value received: " << x[1] << endl;
 	}
+*/
 
 
 
-/*
 	//Need to implement the sending and receiving of different columns between MPI task using send_recv commands. 
-	if (rank == 0){
+	if (rank == 1){
 	cout << "Print x for rank: " << rank << endl;
-	for (uint64_t i = 0; i <= n*n; i++){
+	for (uint64_t i = 0; i <= x_n*x_n; i++){
 		cout << x[i] << " " ;
-		if ((i+1) % n == 0)
+		if ((i+1) % x_n == 0)
 			cout << "\n\n";
 	}
 	cout << "\n\n" << endl;
 	}
 
+/*
 	if (rank == 0){
 	cout << "Print y for rank: " << rank << endl;
 	for (uint64_t i = 0; i <= n*n; i++){
@@ -291,9 +324,11 @@ void main (int argc, char* argv[]) {
 	}
 */
 
+	MPI_Barrier(comm_old);
+	if (rank == 0){
+		cout << "Total tasks: " << nranks << endl;
+	}	
 	ierr = MPI_Finalize();	
-	
-	cout << "Total tasks: " << nranks << endl;
 }
 
 
