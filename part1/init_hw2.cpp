@@ -40,17 +40,17 @@ void smooth (float* x, float* y, uint64_t x_dim_size=98306, float a=0.05, float 
 	ub_i = 0; ub_j = 0;
 	lb_i = n - 1; lb_j = n - 1;
 	float new_val;
-	for (uint64_t i = 0; i < n*n; i += n){
+	for (uint64_t i = 0, k = 0; i < n*n; i += n){
 		for (uint64_t j = i; j < i + n; j++){
 			if (j < n || j >= n*(n-1) || j == i || j == i + n - 1){ 
-				y[j] = x[j];
+				//y[j] = x[j];
 				//cout << "Entered if statement! " << "";
 				continue;
 			}
 			
-			y[j] = b * (x[j-n+0] + x[j+n+0] + x[j-1] + x[j+1]) + c * (x[j]);
+			y[k] = b * (x[j-n+0] + x[j+n+0] + x[j-1] + x[j+1]) + c * (x[j]);
 			//cout << "index: " << j << " value " << y[j] << endl;
-			
+			k++;
 		}
 //		cout << endl;	
 	}
@@ -95,6 +95,34 @@ void count (float* arr, uint64_t dim_size = 98306, uint64_t * num_below=0, float
 //	cout << "Total items in array:  " << tot_count << endl;
 
 }
+
+
+void print_x_array(float * x, uint64_t & x_n, int & my_rank, int rank=0){
+	if (my_rank == rank){
+		cout << "Print x for rank: " << my_rank << endl;
+		for (uint64_t i = 0; i <= x_n*x_n; i++){
+			cout << x[i] << " " ;
+			if ((i+1) % x_n == 0)
+				cout << "\n\n";
+		}
+		cout << "\n\n" << endl;
+	}
+}	
+
+
+
+
+void print_y_array(float * y, uint64_t & n, int & my_rank, int rank = 0){
+	if (my_rank == rank){
+		cout << "Print y for rank: " << my_rank << endl;
+		for (uint64_t i = 0; i <= n*n; i++){
+			cout << y[i] << " " ;
+			if ((i+1) % n == 0)
+				cout << "\n\n";
+		}
+	}
+}
+
 
 
 void main (int argc, char* argv[]) {
@@ -144,11 +172,11 @@ void main (int argc, char* argv[]) {
 
 
 //	srand(time(NULL));
-	float * x1;
 	float * x; float * y;
 	uint64_t n = 10;
 //	uint64_t n = 98306;	
-	
+//	uint64_t n = 49152; // for 2 x 2 matrix
+//	uint64_t n = 32768; // for 3 x 3 matrix
 	uint64_t x_n = n + 2;	
 	double array_size = (double)sizeof(float)*n*n/1073741824;
 
@@ -368,26 +396,17 @@ void main (int argc, char* argv[]) {
 
 
  	//Prints out the x matrix of a node
-	if (rank == 0){
-		cout << "Print x for rank: " << rank << endl;
-		for (uint64_t i = 0; i <= x_n*x_n; i++){
-			cout << x[i] << " " ;
-			if ((i+1) % x_n == 0)
-				cout << "\n\n";
-		}
-		cout << "\n\n" << endl;
-	}
-
+	print_x_array(x, x_n, rank, 0);
 
  	//Prints out the y matrix of a node.
-	if (rank == 0){
-		cout << "Print y for rank: " << rank << endl;
-		for (uint64_t i = 0; i <= x_n*x_n; i++){
-			cout << y[i] << " " ;
-			if ((i+1) % x_n == 0)
-				cout << "\n\n";
-		}
-	}
+	print_y_array(y, n, rank, 0);
+
+
+	count(x, x_n, &elm_bel_thres_x_ct, t);
+	if (rank == 0){ cout << "Element count below threshold in X: " << elm_bel_thres_x_ct << endl;}
+
+	count(y, n, &elm_bel_thres_y_ct, t);
+	if (rank == 0){ cout << "Element count below threshold in Y: " << elm_bel_thres_y_ct << endl;}
 
 
 
