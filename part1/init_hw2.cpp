@@ -199,13 +199,15 @@ void main (int argc, char* argv[]) {
 
 	//obtain all the ranks for each cart shift for each node.
 
+
+/*
 	//shift right 
 	ierr = MPI_Cart_shift(comm_cart, 1, 1, &src_rank_r, &dest_rank_r);
-//	cout << "Shift right - My rank: " << rank << " Receiving from: " << src_rank_r << " Sending to: " << dest_rank_r << endl;
+	//cout << "Shift right - My rank: " << rank << " Receiving from: " << src_rank_r << " Sending to: " << dest_rank_r << endl;
 
 
 
-	//Sending right requires a vector MPI data structure 	
+ 	
 	if (dest_rank_r != -1){
 		//cout << "dest_rank_r does not equal -1" << endl;	
 		ierr = MPI_Isend(&x[(2*x_n)-2], 1, n_column, dest_rank_r, 1, comm_old, &req);
@@ -223,11 +225,11 @@ void main (int argc, char* argv[]) {
 		//cout << "RECEIVED! My rank: " << rank << " Receiving from: " << src_rank_r << 
 		//" first value of array: " << col_recv[0] << endl;
 	}
-	
-	
+		
 	MPI_Barrier(comm_old);
+*/
 
-/*		
+/*	//Check that column vectors are successfully being shifted right.		
 	if (rank == 0){
 		cout << "Send rank: " << rank << endl;
 		for (int i = (2*x_n)-2; i < x_n*(x_n -1); i += x_n){
@@ -235,7 +237,7 @@ void main (int argc, char* argv[]) {
 		}
 		cout << endl << endl;
 	}
-*/
+
 	
 	if (rank == 1){
 		cout << "Receive rank: " << rank << endl;
@@ -244,10 +246,56 @@ void main (int argc, char* argv[]) {
 		}
 		cout << endl << endl;
 	}
-	
+*/	
 	//shift left 
-//	ierr = MPI_Cart_shift(comm_cart, 1, -1, &src_rank_l, &dest_rank_l);
+	ierr = MPI_Cart_shift(comm_cart, 1, -1, &src_rank_l, &dest_rank_l);
 	//cout << "Shift left - My rank: " << rank << " Receiving from: " << src_rank_l << " Sending to: " << dest_rank_l << endl;
+
+
+
+	if (dest_rank_l != -1){
+		//cout << "dest_rank_r does not equal -1" << endl;	
+		ierr = MPI_Isend(&x[x_n+1], 1, n_column, dest_rank_l, 1, comm_old, &req);
+		//cout << "My rank: " << rank << " Sending left column  with first value : " << x[x_n+1] << endl;
+		//MPI_Wait(&req, &stat);
+	}
+
+	if (src_rank_l != -1){
+		//cout << "src_rank_r does not equal -1" << endl;
+		ierr = MPI_Irecv(&col_recv[0], n, MPI_FLOAT, src_rank_l, 1, comm_old, &req);
+		MPI_Wait(&req, &stat);
+		for (int i = (2*x_n)-1, j = 0; i < x_n*(x_n -1); i += x_n, j++){
+                       	x[i] = col_recv[j];
+			//cout << x[i] << ", ";
+                }
+		//cout << "RECEIVED! My rank: " << rank << " Receiving from: " << src_rank_r << 
+		//" first value of array: " << col_recv[0] << endl;
+	}
+	
+	
+	MPI_Barrier(comm_old);
+
+
+
+	//Check that column vectors are successfully being shifted LEFT		
+/*
+	if (rank == 1){
+		cout << "Send rank: " << rank << endl;
+		for (int i = x_n+1; i < x_n*(x_n -1); i += x_n){
+			cout << x[i] << ", ";
+		}
+		cout << endl << endl;
+	}
+*/
+
+	if (rank == 0){
+		cout << "Receive rank: " << rank << endl;
+		for (int i = 0; i < n; i++){
+			cout << col_recv[i] << ", ";
+		}
+		cout << endl << endl;
+	}
+
 
 
 
@@ -303,7 +351,7 @@ void main (int argc, char* argv[]) {
 
 
 	//Need to implement the sending and receiving of different columns between MPI task using send_recv commands. 
-	if (rank == 1){
+	if (rank == 0){
 	cout << "Print x for rank: " << rank << endl;
 	for (uint64_t i = 0; i <= x_n*x_n; i++){
 		cout << x[i] << " " ;
