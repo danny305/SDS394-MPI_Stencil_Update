@@ -1,6 +1,6 @@
 #include <iostream>
 #include <random>
-#include "time.h"
+#include <sys/time.h>
 #include <ctime>
 #include <mpi.h>
 #include <stdexcept>
@@ -11,6 +11,16 @@
 #define NP 3
 
 using namespace std;
+
+
+double mysecond(){
+
+	struct timeval tp;
+	struct timezone tzp;
+	int i;
+	i = gettimeofday(&tp, &tzp);
+	return ( (double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
+}
 
 
 
@@ -219,9 +229,12 @@ void main (int argc, char* argv[]) {
 	uint64_t x_n = n + 2;	
 	double array_size = (double)sizeof(float)*n*n/1073741824;
 
-	float a = 0.05, b = 0.1, c = 0.4, t = 0.1;
+	float b = 0.1, c = 0.4, t = 0.1;
 	uint64_t elm_bel_thres_x_ct, elm_bel_thres_y_ct;
-	float elm_bel_thres_x_fr, elm_bel_thres_y_fr;
+	uint64_t total_elm_bel_thres_x_ct, total_elm_bel_thres_y_ct;
+	double total_elm_bel_thres_x_fr, total_elm_bel_thres_y_fr;
+
+
 
 	x = (float *) malloc(x_n * x_n * sizeof(float));
 	y = (float *) malloc(n * n * sizeof(float));
@@ -311,8 +324,8 @@ void main (int argc, char* argv[]) {
 	if (dest_rank_r != -1){
 		//cout << "dest_rank_r does not equal -1" << endl;	
 		ierr = MPI_Isend(&x[(2*x_n)-2], 1, n_column, dest_rank_r, 1, comm_old, &req);
-		cout << "SENT RIGHT" << " My rank: " << rank << " To: " << dest_rank_r << 
-		" Sending right column  with first value : " << x[(2*x_n)-2] << endl;
+	//	cout << "SENT RIGHT" << " My rank: " << rank << " To: " << dest_rank_r << 
+	//	" Sending right column  with first value : " << x[(2*x_n)-2] << endl;
 		//MPI_Wait;
 	}
 
@@ -323,8 +336,8 @@ void main (int argc, char* argv[]) {
 		for (int i = x_n, j = 0; i < x_n*(x_n -1); i += x_n, j++){
                        x[i] = col_recv[j];
                 }
-		cout << "RECEIVED RIGHT! My rank: " << rank << " Receiving from: " << src_rank_r << 
-		" first value of array: " << col_recv[0] << endl;
+	//	cout << "RECEIVED RIGHT! My rank: " << rank << " Receiving from: " << src_rank_r << 
+	//	" first value of array: " << col_recv[0] << endl;
 	}
 		
 //	MPI_Barrier(comm_old);
@@ -355,8 +368,8 @@ void main (int argc, char* argv[]) {
 	if (dest_rank_l != -1){
 		//cout << "dest_rank_r does not equal -1" << endl;	
 		ierr = MPI_Isend(&x[x_n+1], 1, n_column, dest_rank_l, 1, comm_old, &req);
-		cout << "SENT LEFT "<< "My rank: " << rank << " To: " << dest_rank_l << 
-		" Sending left column  with first value : " << x[x_n+1] << endl;
+	//	cout << "SENT LEFT "<< "My rank: " << rank << " To: " << dest_rank_l << 
+	//	" Sending left column  with first value : " << x[x_n+1] << endl;
 		//MPI_Wait(&req, &stat);
 	}
 
@@ -368,8 +381,8 @@ void main (int argc, char* argv[]) {
                        	x[i] = col_recv[j];
 			//cout << x[i] << ", ";
                 }
-		cout << "RECEIVED LEFT! My rank: " << rank << " Receiving from: " << src_rank_l << 
-		" first value of array: " << col_recv[0] << endl;
+	//	cout << "RECEIVED LEFT! My rank: " << rank << " Receiving from: " << src_rank_l << 
+	//	" first value of array: " << col_recv[0] << endl;
 	}
 		
 //	MPI_Barrier(comm_old);
@@ -403,8 +416,8 @@ void main (int argc, char* argv[]) {
 	if (dest_rank_u != -1){
 		//cout << "dest_rank_r does not equal -1" << endl;	
 		ierr = MPI_Isend(&x[n+1], n, MPI_FLOAT, dest_rank_u, 1, comm_old, &req);
-		cout << "SENDING UP! Rank: " << rank << " sent up To: " << dest_rank_u << 
-		" first value of top row: " << x[n+1] <<endl;
+	//	cout << "SENDING UP! Rank: " << rank << " sent up To: " << dest_rank_u << 
+	//	" first value of top row: " << x[n+1] <<endl;
 		MPI_Wait(&req,&stat);
 	}
 
@@ -413,8 +426,8 @@ void main (int argc, char* argv[]) {
 		ierr = MPI_Irecv(&x[(n+1)*(n+2)+1], n, MPI_FLOAT, src_rank_u, 1, comm_old, &req);
 		MPI_Wait(&req, &stat);
 		//MPI_Barrier;
-		cout << "RECEIVED UP! My rank: " << rank << " receiving from: " << src_rank_u << 
-		" Value received: " << x[(n+1)*(n+2)+1] << endl;
+	//	cout << "RECEIVED UP! My rank: " << rank << " receiving from: " << src_rank_u << 
+	//	" Value received: " << x[(n+1)*(n+2)+1] << endl;
 	}
 
 /* #################################################################################################### */
@@ -423,8 +436,8 @@ void main (int argc, char* argv[]) {
 	if (dest_rank_d != -1){
 		//cout << "dest_rank_r does not equal -1" << endl;	
 		ierr = MPI_Isend(&x[(n)*(n+2)+1], n, MPI_FLOAT, dest_rank_d, 1, comm_old, &req);
-		cout << "SENDING DOWN! Rank: " << rank << " Sent down to: " << dest_rank_d <<  
-		" first value of bottom row: " << x[(n)*(n+2)+1] << endl;
+	//	cout << "SENDING DOWN! Rank: " << rank << " Sent down to: " << dest_rank_d <<  
+	//	" first value of bottom row: " << x[(n)*(n+2)+1] << endl;
 		MPI_Wait(&req,&stat);
 	}
 
@@ -433,8 +446,8 @@ void main (int argc, char* argv[]) {
 		ierr = MPI_Irecv(&x[1], n, MPI_FLOAT, src_rank_d, 1, comm_old, &req);
 		MPI_Wait(&req, &stat);
 		//MPI_Barrier;
-		cout << "RECEIVED DOWN! My rank: " << rank << " Receiving from: " << src_rank_d << 
-		" Value received: " << x[1] << endl;
+	//	cout << "RECEIVED DOWN! My rank: " << rank << " Receiving from: " << src_rank_d << 
+	//	" Value received: " << x[1] << endl;
 	}
 
 /* ================================================================================================================================= */
@@ -461,20 +474,50 @@ void main (int argc, char* argv[]) {
 	if (rank == 0){ cout << "Element count below threshold in Y: " << elm_bel_thres_y_ct << endl;}
 
 	
-	uint64_t total_elem_bel_thres_x_ct, total_elem_bel_thres_y_ct;
 
 	ierr= MPI_Barrier(comm_old);
 	//Send X array below threshold count
-	MPI_Reduce(&elm_bel_thres_x_ct, &total_elem_bel_thres_x_ct, nranks, MPI_INT, MPI_SUM, 0, comm_old);
-	MPI_Reduce(&elm_bel_thres_y_ct, &total_elem_bel_thres_y_ct, nranks, MPI_INT, MPI_SUM, 0, comm_old);
-
+	MPI_Reduce(&elm_bel_thres_x_ct, &total_elm_bel_thres_x_ct, nranks, MPI_INT, MPI_SUM, 0, comm_old);
+	MPI_Reduce(&elm_bel_thres_y_ct, &total_elm_bel_thres_y_ct, nranks, MPI_INT, MPI_SUM, 0, comm_old);
 	ierr = MPI_Barrier(comm_old);
 	
-	if (rank == 0){
+/*	if (rank == 0){
 		cout << "Total Elements in X below threshold: " << total_elem_bel_thres_x_ct << endl;
 		cout << "Total Elements in Y below threshold: " << total_elem_bel_thres_y_ct << endl;
 		cout << "Total tasks: " << nranks << endl;
-	}	
+	}
+*/
+
+	if (rank == 0){
+	double x_divisor =( x_n * x_n) * nranks;	
+	double y_divisor =(n * n) * nranks;	
+	total_elm_bel_thres_x_fr = total_elm_bel_thres_x_ct/(x_n*x_n*nranks);
+	total_elm_bel_thres_y_fr = total_elm_bel_thres_y_ct/(n*n*nranks);
+	
+
+	cout << "Summary" << endl;
+	cout << "---------------------------------------------------------------------" << endl;
+	cout << "Total number of tasks				::	" << nranks << endl;
+	cout << "Number of elements in a row/column /task	::	" << x_n << endl;
+	cout << "Number of inner elements in a row/column /task	::	" << n << endl;
+	cout << "Total number of inner elements			::	" << n*n*nranks << endl;
+	cout << "Number of inner elements/task			::	" << n*n << endl;
+	cout << "Memory (GB) used per array			::	" << array_size << endl;
+	cout << "Threshold					::	" << t << endl;
+	cout << "Smoothing constants (b,c)			::	" << b << ", "<< c << endl;
+	cout << "Total number of elements below threshold (X)	::	" << total_elm_bel_thres_x_ct << endl;
+	cout << "Total fraction of elements below threshold(X)	::	" <<( total_elm_bel_thres_x_ct/(x_divisor))  << endl;
+	cout << "Total number of elements below threshold (Y)	::	" <<total_elm_bel_thres_y_ct << endl;
+	cout << "Total fraction of elements below threshold(Y)	::	" <<( total_elm_bel_thres_y_ct/(y_divisor)) << endl;
+	cout << "---------------------------------------------------------------------" << endl;
+
+
+	}
+
+
+
+
+	
 	ierr = MPI_Finalize();	
 }
 
