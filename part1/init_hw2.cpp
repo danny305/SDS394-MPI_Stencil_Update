@@ -171,8 +171,9 @@ void print_y_array(float * y, uint64_t & n, int & my_rank, int rank = 0){
 
 
 void main (int argc, char* argv[]) {
-
+	double tb_start, tb_end, tinit_end, tinit_start, tcx_start, tcx_end, tcy_start, tcy_end, tm_start, tm_end;
 	//Initialize MPI
+	tm_start = clock();
 	MPI_Comm comm_old = MPI_COMM_WORLD;
 	MPI_Comm comm_cart;
 	MPI_Status status;
@@ -248,6 +249,7 @@ void main (int argc, char* argv[]) {
 
 	
 //	initialize_arr(x,x_n);
+	tinit_start = clock();
 	if (rank == 0){
 		init_send_arr(x, x_n, nranks, comm_old);
 	}
@@ -255,6 +257,8 @@ void main (int argc, char* argv[]) {
 		MPI_Recv(&x[0], 1, init_array, 0, 1, comm_old, &status);
 		cout << "RECEIVED INIT ARRAY! Rank: " << rank << endl;
 	}
+	
+	tinit_end = clock();
 	
 
 
@@ -453,11 +457,20 @@ void main (int argc, char* argv[]) {
 /* ================================================================================================================================= */
 
 
+	ierr = MPI_Barrier(comm_old);
 
+        tb_start = clock();
 	smooth(x, y ,x_n);
+	tb_end = clock();
+ 	
+	if (rank == 0){
+		cout << "Start: " << tb_start << endl;
+		cout << "End: " << tb_end << endl;
+	
+	}
 
 
- 	//Prints out the x matrix of a node
+	//Prints out the x matrix of a node
 //	print_x_array(x, x_n, rank, 0);
 
  	//Prints out the y matrix of a node.
@@ -467,12 +480,16 @@ void main (int argc, char* argv[]) {
 	
 	ierr = MPI_Barrier(comm_old);
 	
+	tcx_start = clock();
 	count(x, x_n, &elm_bel_thres_x_ct, t);
-	if (rank == 0){ cout << "Element count below threshold in X: " << elm_bel_thres_x_ct << endl;}
+	tcx_end = clock();
+	if (rank == 0){ cout << "Element count below threshold in X: " << elm_bel_thres_x_ct << endl;	}
 
+
+	tcy_start = clock();
 	count(y, n, &elm_bel_thres_y_ct, t);
 	if (rank == 0){ cout << "Element count below threshold in Y: " << elm_bel_thres_y_ct << endl;}
-
+	tcy_end = clock();
 	
 
 	ierr= MPI_Barrier(comm_old);
@@ -487,6 +504,7 @@ void main (int argc, char* argv[]) {
 		cout << "Total tasks: " << nranks << endl;
 	}
 */
+	tm_end = clock();
 
 	if (rank == 0){
 	double x_divisor =( x_n * x_n) * nranks;	
@@ -509,8 +527,20 @@ void main (int argc, char* argv[]) {
 	cout << "Total fraction of elements below threshold(X)	::	" <<( total_elm_bel_thres_x_ct/(x_divisor))  << endl;
 	cout << "Total number of elements below threshold (Y)	::	" <<total_elm_bel_thres_y_ct << endl;
 	cout << "Total fraction of elements below threshold(Y)	::	" <<( total_elm_bel_thres_y_ct/(y_divisor)) << endl;
+	
 	cout << "---------------------------------------------------------------------" << endl;
 
+
+
+
+
+	cout << "Action		::	time/s" << endl;
+	cout << "-----------------------------" << endl;
+	cout << "CPU: Init-X	::	" << (tinit_end - tinit_start)/CLOCKS_PER_SEC << endl;
+	cout << "CPU: Smooth	::	" << (tb_end - tb_start)/CLOCKS_PER_SEC << endl;
+	cout << "CPU: Count-X	::	" << (tcx_end - tcx_start)/CLOCKS_PER_SEC << endl;
+	cout << "CPU: Count-Y	::	" << (tcy_end - tcy_start)/CLOCKS_PER_SEC << endl;
+	cout << "CPU:Main Time	::	" << (tm_end - tm_start)/CLOCKS_PER_SEC << endl;
 
 	}
 
@@ -613,14 +643,8 @@ void main (int argc, char* argv[]) {
 	cout << "CPU: Alloc-Y	::	" << T_alloc_y << endl;
 	cout << "CPU: Init-X	::	" << T_init_x << endl;
 	cout << "CPU: Smooth	::	" << T_smooth_y << endl;
-	
-	
 	cout << "CPU: Count-X	::	" << T_count_x << endl;
-	
-	
 	cout << "CPU: Count-Y	::	" << T_count_y << endl;
-	
-	
 	cout << "CPU:Main Time	::	" << T_main << endl;
 	
 
