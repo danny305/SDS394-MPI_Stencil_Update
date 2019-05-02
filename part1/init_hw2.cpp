@@ -32,6 +32,41 @@ void initialize_arr (float* arr, long dim_size = 98306) {
 
 
 
+void init_send_arr (float* x1, uint64_t & xdim_size, int & nranks, MPI_Comm & comm_old) {
+//	cout << "Inside initialize_arr function" << endl;
+	float *  x0;
+	MPI_Request req_init;
+	MPI_Status stat_init;
+
+
+	x0 = (float *) malloc(xdim_size * xdim_size * sizeof(float));
+//	Iniitializing first array before entering for loop:;
+	initialize_arr(x0, xdim_size);
+	for (int rank_num = 1; rank_num < nranks; rank_num++){
+		if (rank_num % 2 == 1){
+			MPI_Isend(&x0[0],xdim_size*xdim_size, MPI_FLOAT, rank_num, 1, comm_old, &req_init);
+			initialize_arr(x1,xdim_size);
+ 			MPI_Wait(&req_init, &stat_init);
+		}			
+		else if (rank_num % 2 == 0){
+			MPI_Isend(&x1[0],xdim_size*xdim_size, MPI_FLOAT, rank_num, 1, comm_old, &req_init);
+			initialize_arr(x0,xdim_size);
+ 			MPI_Wait(&req_init, &stat_init);
+		}			
+		
+		if (rank_num == nranks){
+			if (rank_num % 2 == 0){ x1 = x0;}
+		
+		}	
+	}
+
+
+
+//	cout << "Exiting intialize_arr function" << endl;
+}
+
+
+
 
 void smooth (float* x, float* y, uint64_t x_dim_size=98306, float a=0.05, float b=0.1, float c=0.4) {
 //	cout << "Entered smooth function" << endl;
@@ -171,12 +206,16 @@ void main (int argc, char* argv[]) {
 
 
 
-//	srand(time(NULL));
+	srand(time(NULL));
 	float * x; float * y;
-	uint64_t n = 10;
+//	uint64_t n = 1000;
 //	uint64_t n = 98306;	
 //	uint64_t n = 49152; // for 2 x 2 matrix
 //	uint64_t n = 32768; // for 3 x 3 matrix
+//	uint64_t n = 12288; // for 8 x 8 matrix
+	uint64_t n = 16384;
+
+
 	uint64_t x_n = n + 2;	
 	double array_size = (double)sizeof(float)*n*n/1073741824;
 
@@ -184,15 +223,26 @@ void main (int argc, char* argv[]) {
 	uint64_t elm_bel_thres_x_ct, elm_bel_thres_y_ct;
 	float elm_bel_thres_x_fr, elm_bel_thres_y_fr;
 
-	x = (float *) malloc(x_n * x_n * sizeof(size_t));
-	y = (float *) malloc(n * n * sizeof(size_t));
-
+	x = (float *) malloc(x_n * x_n * sizeof(float));
+	y = (float *) malloc(n * n * sizeof(float));
 
 
 	
-	initialize_arr(x,x_n);
+	MPI_Datatype init_array; // l_in_col, l_out_col, r_in_col, r_out_col;	
+	MPI_Type_contiguous(x_n*x_n, MPI_FLOAT, &init_array);
+	MPI_Type_commit(&init_array);
 
 
+	
+//	initialize_arr(x,x_n);
+	if (rank == 0){
+		init_send_arr(x, x_n, nranks, comm_old);
+	}
+	else {
+		MPI_Recv(&x[0], 1, init_array, 0, 1, comm_old, &status);
+		cout << "RECEIVED INIT ARRAY! Rank: " << rank << endl;
+	}
+	
 
 
 // Sendiing rows and columns to all Neighbors.
@@ -390,27 +440,39 @@ void main (int argc, char* argv[]) {
 /* ================================================================================================================================= */
 
 
-	MPI_Barrier(comm_old);
 
 	smooth(x, y ,x_n);
 
 
  	//Prints out the x matrix of a node
-	print_x_array(x, x_n, rank, 0);
+//	print_x_array(x, x_n, rank, 0);
 
  	//Prints out the y matrix of a node.
-	print_y_array(y, n, rank, 0);
+//	print_y_array(y, n, rank, 0);
 
 
+	
+	ierr = MPI_Barrier(comm_old);
+	
 	count(x, x_n, &elm_bel_thres_x_ct, t);
 	if (rank == 0){ cout << "Element count below threshold in X: " << elm_bel_thres_x_ct << endl;}
 
 	count(y, n, &elm_bel_thres_y_ct, t);
 	if (rank == 0){ cout << "Element count below threshold in Y: " << elm_bel_thres_y_ct << endl;}
 
+	
+	uint64_t total_elem_bel_thres_x_ct, total_elem_bel_thres_y_ct;
 
+	ierr= MPI_Barrier(comm_old);
+	//Send X array below threshold count
+	MPI_Reduce(&elm_bel_thres_x_ct, &total_elem_bel_thres_x_ct, nranks, MPI_INT, MPI_SUM, 0, comm_old);
+	MPI_Reduce(&elm_bel_thres_y_ct, &total_elem_bel_thres_y_ct, nranks, MPI_INT, MPI_SUM, 0, comm_old);
 
+	ierr = MPI_Barrier(comm_old);
+	
 	if (rank == 0){
+		cout << "Total Elements in X below threshold: " << total_elem_bel_thres_x_ct << endl;
+		cout << "Total Elements in Y below threshold: " << total_elem_bel_thres_y_ct << endl;
 		cout << "Total tasks: " << nranks << endl;
 	}	
 	ierr = MPI_Finalize();	
