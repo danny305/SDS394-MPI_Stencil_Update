@@ -1,17 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include "mpi.h"
+#include <math.h>
+
+
 #define f(x)   ( 4.0e0 / (1.0e0 + (x)*(x)) )
 
 double mysecond();
 
 int main(int argc, char *argv[])
 {
+	MPI_Init(&argc, &argv);
 
+	
   double PI25DT = 3.141592653589793238462643e0;
 
   double  pi, h, sum, x, t0,t1;
   int     n, i, ierr;
+	int rank, nranks;
+	MPI_Comm comm = MPI_COMM_WORLD;
+
+
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &nranks);
  
   char line[12];
 
@@ -32,6 +44,9 @@ int main(int argc, char *argv[])
   
   printf(" calc. pi:%20.16f  Error:%20.16f  %13.9f(sec)\n", pi, pi - PI25DT, t1-t0 );
 
+
+
+	ierr = MPI_Finalize()
   return(0);
 }
 
