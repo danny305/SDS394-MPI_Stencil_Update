@@ -1,0 +1,32 @@
+TACC:  Starting up job 3478422 
+TACC:  Starting parallel tasks... 
+RECEIVED INIT ARRAY! Rank: 1
+RECEIVED INIT ARRAY! Rank: 2
+RECEIVED INIT ARRAY! Rank: 3
+Start: 1.926e+07
+End: 1.976e+07
+Element count below threshold in X: 26852275
+Element count below threshold in Y: 558801
+Summary
+---------------------------------------------------------------------
+Total number of tasks				::	4
+Number of elements in a row/column /task	::	16386
+Number of inner elements in a row/column /task	::	16384
+Total number of inner elements			::	1073741824
+Number of inner elements/task			::	268435456
+Memory (GB) used per array			::	1
+Threshold					::	0.1
+Smoothing constants (b,c)			::	0.1, 0.4
+Total number of elements below threshold (X)	::	107407464
+Total fraction of elements below threshold(X)	::	0.100007
+Total number of elements below threshold (Y)	::	2233998
+Total fraction of elements below threshold(Y)	::	0.00208057
+---------------------------------------------------------------------
+Action		::	time/s
+-----------------------------
+CPU: Init-X	::	19.23
+CPU: Smooth	::	0.5
+CPU: Count-X	::	0.1
+CPU: Count-Y	::	0.09
+CPU:Main Time	::	20.19
+TACC:  Shutdown complete. Exiting. 
