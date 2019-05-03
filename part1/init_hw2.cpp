@@ -187,8 +187,7 @@ void main (int argc, char* argv[]) {
 	
 
 
-	//Make sure number of task can make a perfect square
-	
+	//Make sure number of task can make a perfect square	
 	float ps_sq_root = sqrt(nranks);
 	if (rank == 0){
 		if (ps_sq_root == floor(ps_sq_root)){
@@ -249,15 +248,21 @@ void main (int argc, char* argv[]) {
 
 	
 //	initialize_arr(x,x_n);
-	tinit_start = clock();
-	if (rank == 0){
-		init_send_arr(x, x_n, nranks, comm_old);
+/*	tinit_start = clock();
+	if (nranks > 1){
+		if (rank == 0){
+			init_send_arr(x, x_n, nranks, comm_old);
+		}
+		else {
+			MPI_Recv(&x[0], 1, init_array, 0, 1, comm_old, &status);
+			cout << "RECEIVED INIT ARRAY! Rank: " << rank << endl;
+		}
 	}
 	else {
-		MPI_Recv(&x[0], 1, init_array, 0, 1, comm_old, &status);
-		cout << "RECEIVED INIT ARRAY! Rank: " << rank << endl;
+		initialize_arr (x, x_n);
 	}
-	
+*/	
+	initialize_arr(x, x_n);
 	tinit_end = clock();
 	
 
@@ -281,7 +286,7 @@ void main (int argc, char* argv[]) {
 
 	//Create Derived type in order to pass border columns
 	float col_recv[n];	
-	MPI_Datatype n_column; // l_in_col, l_out_col, r_in_col, r_out_col;	
+	MPI_Datatype n_column; 	
 	MPI_Type_vector(n, 1, x_n, MPI_FLOAT, &n_column);
 	MPI_Type_commit(&n_column);
 
@@ -293,14 +298,11 @@ void main (int argc, char* argv[]) {
 	int src_rank_u, dest_rank_u;
 	int src_rank_d, dest_rank_d;
 	
-	int a1 = 10, a2, b1 = 20, b2, cnt = 1;
-	float arr_up[n], arr_down[n];
 	MPI_Request req;
 	MPI_Status stat;
 
 
-	//obtain all the ranks for each cart shift for each node.
-
+	//obtain all the ranks for each cart shift for each task.
 	//shift right coordinates
 	ierr = MPI_Cart_shift(comm_cart, 1, 1, &src_rank_r, &dest_rank_r);
 	//cout << "Shift right - My rank: " << rank << " Receiving from: " << src_rank_r << " Sending to: " << dest_rank_r << endl;
@@ -337,6 +339,7 @@ void main (int argc, char* argv[]) {
 		//cout << "src_rank_r does not equal -1" << endl;
 		ierr = MPI_Irecv(&col_recv[0], n, MPI_FLOAT, src_rank_r, 1, comm_old, &req);
 		MPI_Wait(&req, &stat);
+		//Insert the received column into the proper location of the x array
 		for (int i = x_n, j = 0; i < x_n*(x_n -1); i += x_n, j++){
                        x[i] = col_recv[j];
                 }
@@ -381,6 +384,7 @@ void main (int argc, char* argv[]) {
 		//cout << "src_rank_r does not equal -1" << endl;
 		ierr = MPI_Irecv(&col_recv[0], n, MPI_FLOAT, src_rank_l, 1, comm_old, &req);
 		MPI_Wait(&req, &stat);
+		//Insert the received column into the proper location of the x array
 		for (int i = (2*x_n)-1, j = 0; i < x_n*(x_n -1); i += x_n, j++){
                        	x[i] = col_recv[j];
 			//cout << x[i] << ", ";
@@ -419,7 +423,7 @@ void main (int argc, char* argv[]) {
 	//Sending up a row	
 	if (dest_rank_u != -1){
 		//cout << "dest_rank_r does not equal -1" << endl;	
-		ierr = MPI_Isend(&x[n+1], n, MPI_FLOAT, dest_rank_u, 1, comm_old, &req);
+		ierr = MPI_Isend(&x[x_n+1], n, MPI_FLOAT, dest_rank_u, 1, comm_old, &req);
 	//	cout << "SENDING UP! Rank: " << rank << " sent up To: " << dest_rank_u << 
 	//	" first value of top row: " << x[n+1] <<endl;
 		MPI_Wait(&req,&stat);
@@ -427,7 +431,7 @@ void main (int argc, char* argv[]) {
 
 	if (src_rank_u != -1){
 		//cout << "src_rank_r does not equal -1" << endl;
-		ierr = MPI_Irecv(&x[(n+1)*(n+2)+1], n, MPI_FLOAT, src_rank_u, 1, comm_old, &req);
+		ierr = MPI_Irecv(&x[(n+1)*(x_n)+1], n, MPI_FLOAT, src_rank_u, 1, comm_old, &req);
 		MPI_Wait(&req, &stat);
 		//MPI_Barrier;
 	//	cout << "RECEIVED UP! My rank: " << rank << " receiving from: " << src_rank_u << 
@@ -439,7 +443,7 @@ void main (int argc, char* argv[]) {
 	//Sending down a row
 	if (dest_rank_d != -1){
 		//cout << "dest_rank_r does not equal -1" << endl;	
-		ierr = MPI_Isend(&x[(n)*(n+2)+1], n, MPI_FLOAT, dest_rank_d, 1, comm_old, &req);
+		ierr = MPI_Isend(&x[(n*x_n)+1], n, MPI_FLOAT, dest_rank_d, 1, comm_old, &req);
 	//	cout << "SENDING DOWN! Rank: " << rank << " Sent down to: " << dest_rank_d <<  
 	//	" first value of bottom row: " << x[(n)*(n+2)+1] << endl;
 		MPI_Wait(&req,&stat);
@@ -492,11 +496,13 @@ void main (int argc, char* argv[]) {
 	tcy_end = clock();
 	
 
-	ierr= MPI_Barrier(comm_old);
+	//ierr= MPI_Barrier(comm_old);
 	//Send X array below threshold count
 	MPI_Reduce(&elm_bel_thres_x_ct, &total_elm_bel_thres_x_ct, nranks, MPI_INT, MPI_SUM, 0, comm_old);
+	cout << "Send X elements below threshold! rank: " << rank << endl;
 	MPI_Reduce(&elm_bel_thres_y_ct, &total_elm_bel_thres_y_ct, nranks, MPI_INT, MPI_SUM, 0, comm_old);
-	ierr = MPI_Barrier(comm_old);
+	cout << "Send Y elements below threshold! rank: " << rank << endl;
+	//ierr = MPI_Barrier(comm_old);
 	
 /*	if (rank == 0){
 		cout << "Total Elements in X below threshold: " << total_elem_bel_thres_x_ct << endl;
