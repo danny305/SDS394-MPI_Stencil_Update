@@ -8,6 +8,8 @@
 #define f(x)   ( 4.0e0 / (1.0e0 + (x)*(x)) )
 
 double mysecond();
+double MPI_ManualReduce(double part_sum, int nranks, int size, MPI_Comm comm);
+
 
 int main(int argc, char *argv[]){
 
@@ -65,13 +67,14 @@ int main(int argc, char *argv[]){
 
 	//Get pi from all tasks
 	t0_red = mysecond();	
-	MPI_Reduce(&sum_rank, &pi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);  
+	pi = MPI_ManualReduce(sum_rank, rank, nranks, MPI_COMM_WORLD);
+	//MPI_Reduce(&sum_rank, &pi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);  
 	t1_red = mysecond();
 	t1_total = mysecond();
 
 	//Total time
 	total_time = t1_total - t0_total;
-
+	
 	//Get time integration avg, min, max
 	t_diff_int= t1_int - t0_int;
 	MPI_Reduce(&t_diff_int, &avg_int_t, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
@@ -88,7 +91,7 @@ int main(int argc, char *argv[]){
 	avg_red_t /= nranks;
 
 	if (rank == 0){
-	/*
+		/*
 		printf("calc. pi:%20.16f  Error:%20.16f  %13.9f(sec)\n", pi, pi - PI25DT, t_diff_int );
 		printf("AVG TIMES (number of ranks - %d): \n"\
 					 "\tIntegration time: %13.9f(sec)  Reduction time: %13.9f(sec)\n",
@@ -99,12 +102,13 @@ int main(int argc, char *argv[]){
 		printf("MAX TIMES (number of ranks - %d): \n"\
 					 "\tIntegration time: %13.9f(sec)  Reduction time: %13.9f(sec)\n",
 					  nranks, max_int_t, max_red_t );
-	*/
-	
+		*/
+
 		printf( "%d %d %20.16f %20.16f ", nranks, n, pi, pi - PI25DT );
-		printf( "%13.9f %13.9f %13.9f ", avg_int_t, min_int_t, max_int_t );
-		printf( "%13.9f %13.9f %13.9f ", avg_red_t, min_red_t, max_red_t );
-		printf( "%13.9f\n", total_time );
+    printf( "%13.9f %13.9f %13.9f ", avg_int_t, min_int_t, max_int_t );
+    printf( "%13.9f %13.9f %13.9f ", avg_red_t, min_red_t, max_red_t );
+    printf( "%13.9f\n", total_time ); 
+
 	}
 
 
@@ -122,4 +126,53 @@ double mysecond()
 }
 
 
+double MPI_ManualReduce(double part_sum, int rank, int nranks, MPI_Comm comm)
+{
+	
+	MPI_Status stat;
+	double sum = 0, part_recv = 0;
+
+	
+	
+	MPI_Barrier(comm);
+
+	if (rank != 0)
+	{
+		//MPI_Ssend(&part_sum, 1, MPI_DOUBLE, 0, 1, comm);
+		MPI_Send(&part_sum, 1, MPI_DOUBLE, 0, 1, comm);
+	}
+
+	else
+	{
+		sum = part_sum;
+
+		for (int i =1; i < nranks; i++)
+		{
+			MPI_Recv(&part_recv, 1, MPI_DOUBLE, i, 1, comm, &stat);
+			//printf("Value received: %20.16f From rank: %d\n", part_recv, i); 
+			sum += part_recv;
+		}
+		return sum;
+	}
+
+
+
+
+}
+
+
+
 /* http://www-unix.mcs.anl.gov/mpi/www/ */
+
+
+
+
+
+
+
+
+
+
+
+
+

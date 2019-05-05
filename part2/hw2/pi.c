@@ -30,8 +30,9 @@ int main(int argc, char *argv[])
 
   pi = h * sum;
   
-  printf(" calc. pi:%20.16f  Error:%20.16f  %13.9f(sec)\n", pi, pi - PI25DT, t1-t0 );
-
+  //printf(" calc. pi:%20.16f  Error:%20.16f  %13.9f(sec)\n", pi, pi - PI25DT, t1-t0 );
+	//printf( "calc_pi pi_error total_time" );
+	printf( "%20.16f %20.16f %13.9f\n", pi, pi - PI25DT, t1 - t0 );
   return(0);
 }
 

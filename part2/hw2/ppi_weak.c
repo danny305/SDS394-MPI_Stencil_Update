@@ -20,7 +20,7 @@ int main(int argc, char *argv[]){
 	double t0_total, t1_total, total_time;
 	double t0_int,t1_int, t0_red, t1_red,t_diff_int, t_diff_red;
 	double min_int_t, max_int_t, avg_int_t, min_red_t, max_red_t, avg_red_t;
-  int     n, i, ierr;
+ 	long long     n, i, ierr;
 	int rank, nranks;
 	MPI_Comm comm = MPI_COMM_WORLD;
 
@@ -33,33 +33,35 @@ int main(int argc, char *argv[]){
 	// Read in total number of intervals
 	if (rank == 0){
 		  scanf("%d \n",&n);
-  	//	printf("\nScanned: %d \n", n);
+  //		printf("\nScanned: %d \n", n);
 	}
 
 
 	//Send total number fo intervals to all tasks
 	ierr = MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	if (rank ==0){
-		//printf("Sent broadcast from root! \n");
+	//	printf("Sent broadcast from root! \n");
 	}
 
 
 	MPI_Barrier(MPI_COMM_WORLD);
 
 
-  h    = 1.0e0/n;           /* Calculate the interval size */
+  h    = 1.0e0/(n*nranks);           /* Calculate the interval size */
   sum  = 0.0e0;
-  
+ 
+
+	//printf( "h = %d\n", h ); 
 	t0_total = mysecond();
   t0_int = mysecond();
   for(i = rank + 1; i <= n; i += nranks)
     {
-      x = h * ( (double)(i) - 0.5e0 );
+      x = h * nranks * ( (double)(i) - 0.5e0 );
       sum = sum + f(x);
     }
   t1_int = mysecond();
 
-  sum_rank = h * sum;
+  sum_rank = h * sum * nranks;
   
 	MPI_Barrier(MPI_COMM_WORLD);
 
@@ -69,8 +71,9 @@ int main(int argc, char *argv[]){
 	t1_red = mysecond();
 	t1_total = mysecond();
 
-	//Total time
+	//Get total time
 	total_time = t1_total - t0_total;
+
 
 	//Get time integration avg, min, max
 	t_diff_int= t1_int - t0_int;
@@ -88,7 +91,7 @@ int main(int argc, char *argv[]){
 	avg_red_t /= nranks;
 
 	if (rank == 0){
-	/*
+/*
 		printf("calc. pi:%20.16f  Error:%20.16f  %13.9f(sec)\n", pi, pi - PI25DT, t_diff_int );
 		printf("AVG TIMES (number of ranks - %d): \n"\
 					 "\tIntegration time: %13.9f(sec)  Reduction time: %13.9f(sec)\n",
@@ -99,12 +102,11 @@ int main(int argc, char *argv[]){
 		printf("MAX TIMES (number of ranks - %d): \n"\
 					 "\tIntegration time: %13.9f(sec)  Reduction time: %13.9f(sec)\n",
 					  nranks, max_int_t, max_red_t );
-	*/
-	
+*/	
 		printf( "%d %d %20.16f %20.16f ", nranks, n, pi, pi - PI25DT );
-		printf( "%13.9f %13.9f %13.9f ", avg_int_t, min_int_t, max_int_t );
-		printf( "%13.9f %13.9f %13.9f ", avg_red_t, min_red_t, max_red_t );
-		printf( "%13.9f\n", total_time );
+    printf( "%13.9f %13.9f %13.9f ", avg_int_t, min_int_t, max_int_t );
+    printf( "%13.9f %13.9f %13.9f ", avg_red_t, min_red_t, max_red_t );
+    printf( "%13.9f\n", total_time ); 
 	}
 
 
